@@ -26,6 +26,7 @@ setup(
             'sonar_node = argos_hardware.sonar_node:main',
             'ir_node = argos_hardware.ir_node:main',
             'camera_node = argos_hardware.camera_node:main',
+            'control_panel = argos_hardware.control_panel_node:main',
         ],
     },
 )
