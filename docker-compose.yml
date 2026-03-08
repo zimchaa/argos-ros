@@ -1,0 +1,20 @@
+services:
+  humble:
+    build: .
+    container_name: argos-humble
+    network_mode: host
+    volumes:
+      - ./src:/ros2_ws/src
+      - humble-build:/ros2_ws/build
+      - humble-install:/ros2_ws/install
+      - humble-log:/ros2_ws/log
+    environment:
+      - ROS_DOMAIN_ID=0
+    stdin_open: true
+    tty: true
+    command: bash
+
+volumes:
+  humble-build:
+  humble-install:
+  humble-log:

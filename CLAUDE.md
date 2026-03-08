@@ -88,12 +88,37 @@ system-wide via apt: `python3-rpi.gpio`, `python3-smbus2`, `python3-serial`,
 
 ## Environments
 
-| Machine | Hostname | Role | OS |
-|---|---|---|---|
-| Raspberry Pi 4 | `argos-ros.local` | Robot (ROS2 target) | Ubuntu 22.04, ROS2 Humble |
-| Raspberry Pi 400 | dev workstation | Development + git push | Ubuntu (various) |
+| Machine | Hostname | Role | OS | ROS2 |
+|---|---|---|---|---|
+| Raspberry Pi 4 | `argos-ros.local` | Robot (ROS2 target) | Ubuntu 22.04 | Humble (native) |
+| Dev workstation | `thirtythr33` | Development + git push | Ubuntu 24.04 | Jazzy (native), Humble (Docker) |
 
 SSH key auth configured: `~/.ssh/argos_ros` → `zimchaa@argos-ros.local`.
+
+### Docker dev environment (ROS2 Humble)
+
+The dev machine runs Ubuntu 24.04 with ROS2 Jazzy natively. Since Jazzy and
+Humble use incompatible DDS wire protocols, a Docker container provides ROS2
+Humble for cross-machine communication with the robot.
+
+Files in repo root: `Dockerfile`, `docker-compose.yml`, `.dockerignore`.
+
+- **Base image**: `ros:humble-ros-base-jammy` (Ubuntu 22.04)
+- **Network**: `network_mode: host` for DDS multicast discovery
+- **Volumes**: `./src` bind-mounted; named volumes for `build/`, `install/`, `log/`
+- **Deps**: colcon, smbus2, serial, opencv (apt); RPi.GPIO stub for import compat
+
+```bash
+# Build packages inside the container
+docker compose run --rm humble bash -c \
+  "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
+
+# Interactive shell (build artifacts persist across runs)
+docker compose run --rm humble
+source install/setup.bash
+ros2 topic list                          # verify robot topics visible
+ros2 run argos_hardware control_panel    # launch control panel
+```
 
 ---
 

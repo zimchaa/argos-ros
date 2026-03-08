@@ -242,7 +242,7 @@ def main(args=None):
         # Show cursor and clear screen artifacts
         sys.stdout.write('\033[?25h\033[0m\n')
         sys.stdout.flush()
-        node._stop_all()
         if rclpy.ok():
+            node._stop_all()
             node.destroy_node()
             rclpy.shutdown()
