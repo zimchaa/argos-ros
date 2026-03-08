@@ -8,10 +8,9 @@ services:
       - humble-build:/ros2_ws/build
       - humble-install:/ros2_ws/install
       - humble-log:/ros2_ws/log
-      - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
       - ROS_DOMAIN_ID=0
-      - DISPLAY=${DISPLAY}
+      - DISPLAY=:99
     stdin_open: true
     tty: true
     command: bash

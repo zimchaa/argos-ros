@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-joint-state-publisher \
     ros-humble-joint-state-publisher-gui \
     ros-humble-rviz2 \
+    # VNC server for GUI access without host X11
+    xvfb \
+    x11vnc \
     && rm -rf /var/lib/apt/lists/*
 
 # RPi.GPIO is not available on x86 — install a stub for building/linting
