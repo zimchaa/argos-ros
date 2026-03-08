@@ -114,7 +114,7 @@ class ControlPanelNode(Node):
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
-            tty.setraw(fd)
+            tty.setcbreak(fd)
             while self._running:
                 ch = sys.stdin.read(1)
                 if not ch:
@@ -129,8 +129,7 @@ class ControlPanelNode(Node):
         if ch in ('q', 'Q', '\x03'):  # q or Ctrl+C
             self._stop_all()
             self._running = False
-            rclpy.shutdown()
-            return
+            raise SystemExit(0)
 
         elif ch == ' ':
             self._emergency_stop()
@@ -226,13 +225,23 @@ class ControlPanelNode(Node):
 
 
 def main(args=None):
+    # Save terminal settings before anything else
+    fd = sys.stdin.fileno()
+    original_term = termios.tcgetattr(fd)
+
     rclpy.init(args=args)
     node = ControlPanelNode()
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
+    except (KeyboardInterrupt, SystemExit,
+            rclpy.executors.ExternalShutdownException):
         pass
     finally:
+        # Always restore terminal settings
+        termios.tcsetattr(fd, termios.TCSADRAIN, original_term)
+        # Show cursor and clear screen artifacts
+        sys.stdout.write('\033[?25h\033[0m\n')
+        sys.stdout.flush()
         node._stop_all()
         if rclpy.ok():
             node.destroy_node()
