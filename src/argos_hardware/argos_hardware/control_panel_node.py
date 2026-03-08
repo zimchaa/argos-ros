@@ -211,12 +211,23 @@ class ControlPanelNode(Node):
         # Flotilla
         if self._flotilla is not None:
             f = self._flotilla
-            parts = []
             if f.has_weather:
-                parts.append(f'{f.temperature_c:.1f}°C  {f.pressure_hpa:.0f}hPa')
+                lines.append(f' Weather: {f.temperature_c:.1f}°C  '
+                             f'{f.pressure_hpa:.0f}hPa')
+            else:
+                lines.append(' Weather: (no module)')
             if f.has_body_motion:
-                parts.append(f'hdg={f.body_heading:.0f}°')
-            lines.append(f' Flotilla: {" | ".join(parts) if parts else "(no modules)"}')
+                lines.append(f' Body:   acc=({f.body_acc_x:+5.2f} '
+                             f'{f.body_acc_y:+5.2f} {f.body_acc_z:+5.2f})g  '
+                             f'mag=({f.body_mag_x:+6d} {f.body_mag_y:+6d} '
+                             f'{f.body_mag_z:+6d})  hdg={f.body_heading:.0f}°')
+            else:
+                lines.append(' Body:   (no module)')
+            if f.has_arm_motion:
+                lines.append(f' Arm:    acc=({f.arm_acc_x:+5.2f} '
+                             f'{f.arm_acc_y:+5.2f} {f.arm_acc_z:+5.2f})g')
+            else:
+                lines.append(' Arm:    (no module)')
         else:
             lines.append(' Flotilla: (no data)')
 
