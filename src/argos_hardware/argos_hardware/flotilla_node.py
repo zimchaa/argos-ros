@@ -49,7 +49,13 @@ class FlotillaNode(Node):
             msg.pressure_hpa  = w.pressure_hpa
             msg.has_weather   = True
 
+        # Try configured channels first, fall back to dynamic slot order
         body = self._reader.motion_channel(FLOTILLA_BODY_MOTION_CH)
+        arm = self._reader.motion_channel(FLOTILLA_ARM_MOTION_CH)
+        if body is None and arm is None:
+            body = self._reader.motion
+            arm = self._reader.motion2
+
         if body is not None:
             msg.body_acc_x   = body.acc_x_g
             msg.body_acc_y   = body.acc_y_g
@@ -60,7 +66,6 @@ class FlotillaNode(Node):
             msg.body_heading = body.heading
             msg.has_body_motion = True
 
-        arm = self._reader.motion_channel(FLOTILLA_ARM_MOTION_CH)
         if arm is not None:
             msg.arm_acc_x = arm.acc_x_g
             msg.arm_acc_y = arm.acc_y_g
