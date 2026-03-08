@@ -28,21 +28,21 @@
   <xacro:property name="imu_y"     value="0.0"   />
   <xacro:property name="imu_z"     value="0.050" />
 
-  <xacro:property name="sonar_x"   value="0.120" />
-  <xacro:property name="sonar_y"   value="0.0"   />
-  <xacro:property name="sonar_z"   value="0.040" />
+  <!-- sonar is now arm-mounted (on wrist, above gripper) — offset below -->
+  <xacro:property name="sonar_wrist_z" value="0.030" />
 
   <xacro:property name="camera_x"  value="0.110" />
   <xacro:property name="camera_y"  value="0.0"   />
   <xacro:property name="camera_z"  value="0.090" />
 
-  <xacro:property name="ir1_x"     value="0.125" />
+  <!-- IR sensors face rearward (parking sensors), just inside tracks -->
+  <xacro:property name="ir1_x"     value="-0.115"/>
   <xacro:property name="ir1_y"     value="-0.060"/>
-  <xacro:property name="ir1_z"     value="0.020" />
+  <xacro:property name="ir1_z"     value="0.008" />
 
-  <xacro:property name="ir2_x"     value="0.125" />
+  <xacro:property name="ir2_x"     value="-0.115"/>
   <xacro:property name="ir2_y"     value="0.060" />
-  <xacro:property name="ir2_z"     value="0.020" />
+  <xacro:property name="ir2_z"     value="0.008" />
 
   <!-- arm base is at rear-centre of chassis top -->
   <xacro:property name="arm_base_x" value="-0.060" />
@@ -146,7 +146,8 @@
     <origin xyz="${imu_x} ${imu_y} ${track_radius + chassis_height + imu_z}" rpy="0 0 0" />
   </joint>
 
-  <!-- Sonar (HC-SR04) — front of chassis -->
+  <!-- Sonar (HC-SR04) — mounted on wrist, above gripper attachment -->
+  <!-- Moves with the arm so it can scan by sweeping joints -->
   <link name="sonar_link">
     <visual>
       <geometry>
@@ -157,9 +158,10 @@
     </visual>
   </link>
   <joint name="sonar_joint" type="fixed">
-    <parent link="base_link" />
+    <parent link="wrist_link" />
     <child link="sonar_link" />
-    <origin xyz="${sonar_x} ${sonar_y} ${track_radius + sonar_z}" rpy="0 0 0" />
+    <!-- 3 cm above wrist origin, pointing along the wrist/gripper axis -->
+    <origin xyz="0 0 ${sonar_wrist_z}" rpy="0 0 0" />
   </joint>
 
   <!-- Camera — front-top of chassis -->
@@ -185,7 +187,7 @@
     <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
   </joint>
 
-  <!-- IR sensors — front corners -->
+  <!-- IR sensors — rear-facing parking sensors, just inside tracks -->
   <xacro:macro name="ir_sensor" params="name x y z">
     <link name="${name}_link">
       <visual>
@@ -199,7 +201,8 @@
     <joint name="${name}_joint" type="fixed">
       <parent link="base_link" />
       <child link="${name}_link" />
-      <origin xyz="${x} ${y} ${track_radius + z}" rpy="0 0 0" />
+      <!-- facing rearward (pi yaw), low to ground -->
+      <origin xyz="${x} ${y} ${track_radius + z}" rpy="0 0 ${pi}" />
     </joint>
   </xacro:macro>
 
@@ -366,6 +369,27 @@
     <parent link="gripper_link" />
     <child link="gripper_tip_link" />
     <origin xyz="0 0 ${gripper_length}" rpy="0 0 0" />
+  </joint>
+
+  <!-- ================================================================== -->
+  <!-- Body-mounted motion sensor (Flotilla LSM303D on Raspberry Pi)      -->
+  <!-- Flat on Pi at rear of chassis, arrow silkscreen pointing right     -->
+  <!-- (module X axis = robot -Y), so yaw -90°                           -->
+  <!-- ================================================================== -->
+  <link name="body_motion_link">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.003" />
+      </geometry>
+      <material name="green" />
+    </visual>
+  </link>
+  <joint name="body_motion_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="body_motion_link" />
+    <!-- rear of chassis, on top of Pi, lying flat, arrow pointing right -->
+    <origin xyz="-0.080 0 ${track_radius + chassis_height + 0.005}"
+            rpy="0 0 ${-pi/2}" />
   </joint>
 
   <!-- ================================================================== -->
