@@ -5,6 +5,7 @@ services:
     network_mode: host
     volumes:
       - ./src:/ros2_ws/src
+      - ./start-vnc.sh:/ros2_ws/start-vnc.sh
       - humble-build:/ros2_ws/build
       - humble-install:/ros2_ws/install
       - humble-log:/ros2_ws/log
