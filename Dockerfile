@@ -8,6 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-smbus2 \
     python3-serial \
     python3-opencv \
+    ros-humble-xacro \
+    ros-humble-robot-state-publisher \
+    ros-humble-joint-state-publisher \
+    ros-humble-joint-state-publisher-gui \
+    ros-humble-rviz2 \
     && rm -rf /var/lib/apt/lists/*
 
 # RPi.GPIO is not available on x86 — install a stub for building/linting
