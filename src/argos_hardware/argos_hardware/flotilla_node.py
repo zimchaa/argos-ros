@@ -3,9 +3,12 @@ Flotilla node — publishes sensor data from the Pimoroni Flotilla dock.
 
 Topic: /flotilla (argos_msgs/FlotillaData)
   Weather (BMP280): temperature_c, pressure_hpa
-  Body Motion (LSM303D ch6): body_acc_{x,y,z}, body_mag_{x,y,z}, body_heading
-  Arm Motion (LSM303D ch1): arm_acc_{x,y,z}
+  Body Motion (LSM303D): body_acc_{x,y,z}, body_mag_{x,y,z}, body_heading
+  Arm Motion (LSM303D): arm_acc_{x,y,z}
   Validity flags: has_weather, has_body_motion, has_arm_motion
+
+Modules are detected dynamically regardless of which dock port they're
+plugged into. First motion module seen = body, second = arm.
 
 Rate: ~50 Hz (param: publish_rate, default 50.0)
 """
@@ -13,7 +16,6 @@ Rate: ~50 Hz (param: publish_rate, default 50.0)
 import rclpy
 from rclpy.node import Node
 from argos_msgs.msg import FlotillaData
-from argos_hardware.core.config import FLOTILLA_BODY_MOTION_CH, FLOTILLA_ARM_MOTION_CH
 
 
 class FlotillaNode(Node):
@@ -49,12 +51,8 @@ class FlotillaNode(Node):
             msg.pressure_hpa  = w.pressure_hpa
             msg.has_weather   = True
 
-        # Try configured channels first, fall back to dynamic slot order
-        body = self._reader.motion_channel(FLOTILLA_BODY_MOTION_CH)
-        arm = self._reader.motion_channel(FLOTILLA_ARM_MOTION_CH)
-        if body is None and arm is None:
-            body = self._reader.motion
-            arm = self._reader.motion2
+        body = self._reader.motion
+        arm = self._reader.motion2
 
         if body is not None:
             msg.body_acc_x   = body.acc_x_g
