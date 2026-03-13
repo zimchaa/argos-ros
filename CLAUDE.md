@@ -101,6 +101,7 @@ system-wide via apt: `python3-rpi.gpio`, `python3-smbus2`, `python3-serial`,
 |---|---|---|---|---|
 | Raspberry Pi 4 | `argos-ros.local` | Robot (ROS2 target) | Ubuntu 22.04 | Humble (native) |
 | Dev workstation | `thirtythr33` | Development + git push | Ubuntu 24.04 | Jazzy (native), Humble (Docker) |
+| Dev machine | `atlas-controller` | Native Humble dev + rviz2 visualization | Ubuntu 22.04 desktop (Pi 400) | Humble (native) |
 
 SSH key auth configured: `~/.ssh/argos_ros` → `zimchaa@argos-ros.local`.
 
@@ -185,22 +186,21 @@ See the [argos-robot CLAUDE.md](https://github.com/zimchaa/argos-robot) for:
 
 ## Status
 
-Session 2 (2026-03-08): added `argos_description` package.
+Session 3 (2026-03-13): atlas-controller confirmed as native Humble dev machine.
 
 **Working:**
-- All 4 packages build cleanly on robot (`colcon build --symlink-install`)
+- All 4 packages build cleanly on robot and atlas-controller (`colcon build --symlink-install`)
 - All 7 executables registered and launchable
 - IR node tested end-to-end: `/ir/proximity` publishing correctly
 - GitHub sync workflow confirmed (push → pull → immediate effect)
 - URDF model with chassis, 4-joint arm, and all sensor frames
-- rviz2 launch with joint_state_publisher_gui for interactive visualization
+- rviz2 + joint_state_publisher_gui visualization confirmed on atlas-controller
 
-**Not yet tested on this robot:**
+**Not yet tested:**
 - IMU, flotilla, AHRS, sonar, camera nodes (sensors may not be connected yet)
 - Motor control via hardware_bridge (tracks + arm)
 - Full bringup launch
 - Multi-node operation
-- URDF visualization (requires rviz2 display from dev machine)
 
 **Planned:**
 - Tune URDF dimensions against physical robot measurements
