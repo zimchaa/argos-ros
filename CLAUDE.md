@@ -47,6 +47,15 @@ src/
         sensorium/flotilla.py    # Flotilla dock USB serial reader
         sensorium/ahrs.py        # MadgwickAHRS 9DOF filter
         vision/camera.py         # USB webcam wrapper
+  argos_description/               # CMake ament — URDF robot model
+    CMakeLists.txt
+    package.xml
+    urdf/
+      argos.urdf.xacro             # Xacro model (chassis + arm + sensors)
+    launch/
+      display.launch.py            # robot_state_publisher + rviz2 + joint GUI
+    rviz/
+      argos.rviz                   # Pre-configured rviz2 view
   argos_bringup/                 # Python ament — launch files
     launch/
       argos.launch.py            # Full bringup (motors + sensors)
@@ -176,21 +185,24 @@ See the [argos-robot CLAUDE.md](https://github.com/zimchaa/argos-robot) for:
 
 ## Status
 
-Session 1 complete (2026-03-07).
+Session 2 (2026-03-08): added `argos_description` package.
 
 **Working:**
-- All 3 packages build cleanly on robot (`colcon build --symlink-install`)
+- All 4 packages build cleanly on robot (`colcon build --symlink-install`)
 - All 7 executables registered and launchable
 - IR node tested end-to-end: `/ir/proximity` publishing correctly
 - GitHub sync workflow confirmed (push → pull → immediate effect)
+- URDF model with chassis, 4-joint arm, and all sensor frames
+- rviz2 launch with joint_state_publisher_gui for interactive visualization
 
 **Not yet tested on this robot:**
 - IMU, flotilla, AHRS, sonar, camera nodes (sensors may not be connected yet)
 - Motor control via hardware_bridge (tracks + arm)
 - Full bringup launch
 - Multi-node operation
+- URDF visualization (requires rviz2 display from dev machine)
 
 **Planned:**
-- Remote control interface for testing actuators and sensors from dev machine
-- URDF robot description package
+- Tune URDF dimensions against physical robot measurements
+- Joint state publishing from actual arm motor feedback
 - Navigation integration

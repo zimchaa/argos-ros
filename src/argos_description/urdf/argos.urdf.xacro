@@ -1,0 +1,412 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="argos">
+
+  <!-- ================================================================== -->
+  <!-- Chassis dimensions (approximate — tracked Pi robot)                -->
+  <!-- ================================================================== -->
+  <xacro:property name="chassis_length"  value="0.250" />
+  <xacro:property name="chassis_width"   value="0.180" />
+  <xacro:property name="chassis_height"  value="0.060" />
+  <xacro:property name="track_radius"    value="0.032" />
+  <xacro:property name="track_width"     value="0.030" />
+  <xacro:property name="track_separation" value="${chassis_width + track_width}" />
+
+  <!-- ================================================================== -->
+  <!-- OWI-535 arm dimensions (approximate, metres)                       -->
+  <!-- ================================================================== -->
+  <xacro:property name="arm_base_height"    value="0.050" />
+  <xacro:property name="upper_arm_length"   value="0.135" />
+  <xacro:property name="forearm_length"     value="0.135" />
+  <xacro:property name="wrist_length"       value="0.040" />
+  <xacro:property name="gripper_length"     value="0.070" />
+  <xacro:property name="arm_link_radius"    value="0.020" />
+
+  <!-- ================================================================== -->
+  <!-- Sensor mounting offsets from base_link centre                       -->
+  <!-- ================================================================== -->
+  <xacro:property name="imu_x"     value="0.0"   />
+  <xacro:property name="imu_y"     value="0.0"   />
+  <xacro:property name="imu_z"     value="0.050" />
+
+  <!-- sonar is now arm-mounted (on wrist, above gripper) — offset below -->
+  <xacro:property name="sonar_wrist_z" value="0.030" />
+
+  <xacro:property name="camera_x"  value="-0.060" />
+  <xacro:property name="camera_y"  value="0.085"  />
+  <xacro:property name="camera_z"  value="0.090"  />
+
+  <!-- IR sensors face rearward (parking sensors), just inside tracks -->
+  <xacro:property name="ir1_x"     value="-0.115"/>
+  <xacro:property name="ir1_y"     value="-0.060"/>
+  <xacro:property name="ir1_z"     value="0.008" />
+
+  <xacro:property name="ir2_x"     value="-0.115"/>
+  <xacro:property name="ir2_y"     value="0.060" />
+  <xacro:property name="ir2_z"     value="0.008" />
+
+  <!-- arm base is at front-centre of chassis top -->
+  <xacro:property name="arm_base_x" value="0.060" />
+  <xacro:property name="arm_base_y" value="0.0"   />
+  <xacro:property name="arm_base_z" value="${chassis_height / 2}" />
+
+  <!-- ================================================================== -->
+  <!-- Materials                                                          -->
+  <!-- ================================================================== -->
+  <material name="dark_grey">
+    <color rgba="0.3 0.3 0.3 1.0" />
+  </material>
+  <material name="black">
+    <color rgba="0.1 0.1 0.1 1.0" />
+  </material>
+  <material name="yellow">
+    <color rgba="0.9 0.8 0.2 1.0" />
+  </material>
+  <material name="blue">
+    <color rgba="0.2 0.4 0.8 1.0" />
+  </material>
+  <material name="red">
+    <color rgba="0.8 0.2 0.2 1.0" />
+  </material>
+  <material name="green">
+    <color rgba="0.2 0.7 0.3 1.0" />
+  </material>
+
+  <!-- ================================================================== -->
+  <!-- Base link — chassis                                                -->
+  <!-- ================================================================== -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}" />
+      </geometry>
+      <origin xyz="0 0 ${track_radius + chassis_height / 2}" rpy="0 0 0" />
+      <material name="dark_grey" />
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}" />
+      </geometry>
+      <origin xyz="0 0 ${track_radius + chassis_height / 2}" rpy="0 0 0" />
+    </collision>
+    <inertial>
+      <mass value="1.5" />
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01" />
+      <origin xyz="0 0 ${track_radius + chassis_height / 2}" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <!-- ================================================================== -->
+  <!-- Tracks (visual only — no joints, tracks are non-articulated)       -->
+  <!-- ================================================================== -->
+  <xacro:macro name="track" params="side y_offset">
+    <link name="${side}_track_link">
+      <visual>
+        <geometry>
+          <box size="${chassis_length} ${track_width} ${track_radius * 2}" />
+        </geometry>
+        <material name="black" />
+      </visual>
+      <collision>
+        <geometry>
+          <box size="${chassis_length} ${track_width} ${track_radius * 2}" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.2" />
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
+      </inertial>
+    </link>
+
+    <joint name="${side}_track_joint" type="fixed">
+      <parent link="base_link" />
+      <child link="${side}_track_link" />
+      <origin xyz="0 ${y_offset} ${track_radius}" rpy="0 0 0" />
+    </joint>
+  </xacro:macro>
+
+  <xacro:track side="left"  y_offset="${track_separation / 2}" />
+  <xacro:track side="right" y_offset="${-track_separation / 2}" />
+
+  <!-- ================================================================== -->
+  <!-- Sensors                                                            -->
+  <!-- ================================================================== -->
+
+  <!-- IMU (MPU-6050) — centre of chassis -->
+  <link name="imu_link">
+    <visual>
+      <geometry>
+        <box size="0.020 0.016 0.003" />
+      </geometry>
+      <material name="green" />
+    </visual>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="imu_link" />
+    <origin xyz="${imu_x} ${imu_y} ${track_radius + chassis_height + imu_z}" rpy="0 0 0" />
+  </joint>
+
+  <!-- Sonar (HC-SR04) — mounted on wrist, above gripper attachment -->
+  <!-- Moves with the arm so it can scan by sweeping joints -->
+  <link name="sonar_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.008" length="0.015" />
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 ${pi/2} 0" />
+      <material name="blue" />
+    </visual>
+  </link>
+  <joint name="sonar_joint" type="fixed">
+    <parent link="wrist_link" />
+    <child link="sonar_link" />
+    <!-- 3 cm above wrist origin, pointing along the wrist/gripper axis -->
+    <origin xyz="0 0 ${sonar_wrist_z}" rpy="0 0 0" />
+  </joint>
+
+  <!-- Camera — side of chassis towards rear, facing forward -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.025 0.060 0.025" />
+      </geometry>
+      <material name="red" />
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="camera_link" />
+    <origin xyz="${camera_x} ${camera_y} ${track_radius + camera_z}" rpy="0 0 0" />
+  </joint>
+
+  <!-- Camera optical frame (Z forward, X right, Y down — REP-103) -->
+  <link name="camera_optical_link" />
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link" />
+    <child link="camera_optical_link" />
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}" />
+  </joint>
+
+  <!-- IR sensors — rear-facing parking sensors, just inside tracks -->
+  <xacro:macro name="ir_sensor" params="name x y z">
+    <link name="${name}_link">
+      <visual>
+        <geometry>
+          <cylinder radius="0.005" length="0.010" />
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 ${pi/2} 0" />
+        <material name="red" />
+      </visual>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <parent link="base_link" />
+      <child link="${name}_link" />
+      <!-- facing rearward (pi yaw), low to ground -->
+      <origin xyz="${x} ${y} ${track_radius + z}" rpy="0 0 ${pi}" />
+    </joint>
+  </xacro:macro>
+
+  <xacro:ir_sensor name="ir1" x="${ir1_x}" y="${ir1_y}" z="${ir1_z}" />
+  <xacro:ir_sensor name="ir2" x="${ir2_x}" y="${ir2_y}" z="${ir2_z}" />
+
+  <!-- ================================================================== -->
+  <!-- OWI-535 Arm                                                        -->
+  <!-- ================================================================== -->
+
+  <!-- Arm base (turntable mount — fixed for now, OWI-535 base rotation   -->
+  <!-- is not motorised on this build)                                    -->
+  <link name="arm_base_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.035" length="${arm_base_height}" />
+      </geometry>
+      <origin xyz="0 0 ${arm_base_height / 2}" rpy="0 0 0" />
+      <material name="yellow" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.035" length="${arm_base_height}" />
+      </geometry>
+      <origin xyz="0 0 ${arm_base_height / 2}" rpy="0 0 0" />
+    </collision>
+    <inertial>
+      <mass value="0.15" />
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001" />
+      <origin xyz="0 0 ${arm_base_height / 2}" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <joint name="arm_base_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="arm_base_link" />
+    <origin xyz="${arm_base_x} ${arm_base_y} ${track_radius + chassis_height + arm_base_z}"
+            rpy="0 0 0" />
+  </joint>
+
+  <!-- Shoulder — rotates in pitch (Y axis) -->
+  <link name="shoulder_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${arm_link_radius}" length="${upper_arm_length}" />
+      </geometry>
+      <origin xyz="0 0 ${upper_arm_length / 2}" rpy="0 0 0" />
+      <material name="yellow" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${arm_link_radius}" length="${upper_arm_length}" />
+      </geometry>
+      <origin xyz="0 0 ${upper_arm_length / 2}" rpy="0 0 0" />
+    </collision>
+    <inertial>
+      <mass value="0.10" />
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.00005" />
+      <origin xyz="0 0 ${upper_arm_length / 2}" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <joint name="shoulder_joint" type="revolute">
+    <parent link="arm_base_link" />
+    <child link="shoulder_link" />
+    <origin xyz="0 0 ${arm_base_height}" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="5.0" velocity="1.5" />
+  </joint>
+
+  <!-- Elbow — rotates in pitch (Y axis) -->
+  <link name="elbow_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${arm_link_radius}" length="${forearm_length}" />
+      </geometry>
+      <origin xyz="0 0 ${forearm_length / 2}" rpy="0 0 0" />
+      <material name="yellow" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${arm_link_radius}" length="${forearm_length}" />
+      </geometry>
+      <origin xyz="0 0 ${forearm_length / 2}" rpy="0 0 0" />
+    </collision>
+    <inertial>
+      <mass value="0.08" />
+      <inertia ixx="0.00015" ixy="0" ixz="0" iyy="0.00015" iyz="0" izz="0.00003" />
+      <origin xyz="0 0 ${forearm_length / 2}" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <joint name="elbow_joint" type="revolute">
+    <parent link="shoulder_link" />
+    <child link="elbow_link" />
+    <origin xyz="0 0 ${upper_arm_length}" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="3.0" velocity="1.5" />
+  </joint>
+
+  <!-- Wrist — rotates in pitch (Y axis) -->
+  <link name="wrist_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${arm_link_radius * 0.8}" length="${wrist_length}" />
+      </geometry>
+      <origin xyz="0 0 ${wrist_length / 2}" rpy="0 0 0" />
+      <material name="yellow" />
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${arm_link_radius * 0.8}" length="${wrist_length}" />
+      </geometry>
+      <origin xyz="0 0 ${wrist_length / 2}" rpy="0 0 0" />
+    </collision>
+    <inertial>
+      <mass value="0.04" />
+      <inertia ixx="0.00002" ixy="0" ixz="0" iyy="0.00002" iyz="0" izz="0.00001" />
+      <origin xyz="0 0 ${wrist_length / 2}" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <joint name="wrist_joint" type="revolute">
+    <parent link="elbow_link" />
+    <child link="wrist_link" />
+    <origin xyz="0 0 ${forearm_length}" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="2.0" velocity="1.5" />
+  </joint>
+
+  <!-- Gripper — simplified as a single prismatic joint -->
+  <link name="gripper_link">
+    <visual>
+      <geometry>
+        <box size="0.025 0.050 ${gripper_length}" />
+      </geometry>
+      <origin xyz="0 0 ${gripper_length / 2}" rpy="0 0 0" />
+      <material name="yellow" />
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.025 0.050 ${gripper_length}" />
+      </geometry>
+      <origin xyz="0 0 ${gripper_length / 2}" rpy="0 0 0" />
+    </collision>
+    <inertial>
+      <mass value="0.05" />
+      <inertia ixx="0.00002" ixy="0" ixz="0" iyy="0.00002" iyz="0" izz="0.00001" />
+      <origin xyz="0 0 ${gripper_length / 2}" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <joint name="gripper_joint" type="revolute">
+    <parent link="wrist_link" />
+    <child link="gripper_link" />
+    <origin xyz="0 0 ${wrist_length}" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.5" upper="0.5" effort="2.0" velocity="1.0" />
+  </joint>
+
+  <!-- Gripper tip (for end-effector reference) -->
+  <link name="gripper_tip_link" />
+  <joint name="gripper_tip_joint" type="fixed">
+    <parent link="gripper_link" />
+    <child link="gripper_tip_link" />
+    <origin xyz="0 0 ${gripper_length}" rpy="0 0 0" />
+  </joint>
+
+  <!-- ================================================================== -->
+  <!-- Body-mounted motion sensor (Flotilla LSM303D on Raspberry Pi)      -->
+  <!-- Flat on Pi at rear of chassis, arrow silkscreen pointing right     -->
+  <!-- (module X axis = robot -Y), so yaw -90°                           -->
+  <!-- ================================================================== -->
+  <link name="body_motion_link">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.003" />
+      </geometry>
+      <material name="green" />
+    </visual>
+  </link>
+  <joint name="body_motion_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="body_motion_link" />
+    <!-- rear of chassis, on top of Pi, lying flat, arrow pointing right -->
+    <origin xyz="-0.080 0 ${track_radius + chassis_height + 0.005}"
+            rpy="0 0 ${-pi/2}" />
+  </joint>
+
+  <!-- ================================================================== -->
+  <!-- Arm-mounted motion sensor (Flotilla LSM303D on elbow link)         -->
+  <!-- ================================================================== -->
+  <link name="arm_motion_link">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.003" />
+      </geometry>
+      <material name="green" />
+    </visual>
+  </link>
+  <joint name="arm_motion_joint" type="fixed">
+    <parent link="elbow_link" />
+    <child link="arm_motion_link" />
+    <origin xyz="0 0 ${forearm_length * 0.5}" rpy="0 0 0" />
+  </joint>
+
+</robot>
