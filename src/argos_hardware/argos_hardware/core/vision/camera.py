@@ -36,7 +36,7 @@ class Camera:
     """
 
     def __init__(self, index=0, width=640, height=480, fps=30):
-        self._cap = cv2.VideoCapture(index)
+        self._cap = cv2.VideoCapture(index, cv2.CAP_V4L2)
         if not self._cap.isOpened():
             raise RuntimeError(
                 f"Cannot open camera at index {index}. "

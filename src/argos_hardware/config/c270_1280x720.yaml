@@ -1,0 +1,31 @@
+# Logitech C270 camera intrinsic calibration — 1280x720
+# Calibrated 2026-03-14 on atlas-controller using ROS2 camera_calibration
+# ros2 run camera_calibration cameracalibrator --size 8x6 --square 0.025
+# 26 samples, A4 checkerboard with 25mm squares
+
+image_width: 1280
+image_height: 720
+camera_name: c270
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1421.134731, 0.0, 610.675442,
+         0.0, 1425.962871, 397.852439,
+         0.0, 0.0, 1.0]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.113987, -0.071495, -0.000645, -0.008425, 0.0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1454.872437, 0.0, 603.466241, 0.0,
+         0.0, 1466.538330, 396.649542, 0.0,
+         0.0, 0.0, 1.0, 0.0]
