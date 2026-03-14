@@ -46,6 +46,13 @@ class CameraNode(Node):
         self.declare_parameter('height', 480)
         self.declare_parameter('fps', 30)
         self.declare_parameter('publish_rate', 30.0)
+
+        idx    = self.get_parameter('device_index').value
+        width  = self.get_parameter('width').value
+        height = self.get_parameter('height').value
+        fps    = self.get_parameter('fps').value
+        rate   = self.get_parameter('publish_rate').value
+
         _config_dir = get_package_share_directory('argos_hardware')
         if width == 1280 and height == 720:
             _default_cal = 'c270_1280x720.yaml'
@@ -53,12 +60,6 @@ class CameraNode(Node):
             _default_cal = 'c270_640x480.yaml'
         default_yaml = os.path.join(_config_dir, 'config', _default_cal)
         self.declare_parameter('camera_info_url', default_yaml)
-
-        idx    = self.get_parameter('device_index').value
-        width  = self.get_parameter('width').value
-        height = self.get_parameter('height').value
-        fps    = self.get_parameter('fps').value
-        rate   = self.get_parameter('publish_rate').value
         yaml_path = self.get_parameter('camera_info_url').value
 
         self._pub = self.create_publisher(Image, '/camera/image_raw', 5)

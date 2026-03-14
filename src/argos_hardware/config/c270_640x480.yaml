@@ -1,7 +1,6 @@
 # Logitech C270 camera intrinsic calibration — 640x480
-# Source: FTC RobotController teamwebcamcalibrations.xml (Noah Andrews, 2019)
-# fx~822 is consistent across multiple independent community calibrations.
-# For precision applications, replace with your own checkerboard calibration.
+# Source: Measured checkerboard calibration (2026-03-14)
+# fx~696 is consistent with C270 ~60° diagonal FOV at this resolution.
 
 image_width: 640
 image_height: 480
@@ -9,14 +8,14 @@ camera_name: c270
 camera_matrix:
   rows: 3
   cols: 3
-  data: [822.317, 0.0, 319.495,
-         0.0, 822.317, 242.502,
+  data: [695.6586237812295, 0.0, 321.36542090238754,
+         0.0, 697.455057761677, 249.81049549097224,
          0.0, 0.0, 1.0]
 distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
   cols: 5
-  data: [-0.0449369, 1.17277, 0.0, 0.0, -3.63244]
+  data: [0.10169861715604012, -0.23697962551784577, -0.0020131159439800983, 0.0013643651356309953, 0.0]
 rectification_matrix:
   rows: 3
   cols: 3
@@ -26,6 +25,6 @@ rectification_matrix:
 projection_matrix:
   rows: 3
   cols: 4
-  data: [822.317, 0.0, 319.495, 0.0,
-         0.0, 822.317, 242.502, 0.0,
+  data: [702.5348510742188, 0.0, 321.49324121261634, 0.0,
+         0.0, 704.2915649414062, 248.6594937630689, 0.0,
          0.0, 0.0, 1.0, 0.0]
