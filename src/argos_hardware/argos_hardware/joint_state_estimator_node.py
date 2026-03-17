@@ -76,6 +76,9 @@ class JointStateEstimatorNode(Node):
         self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer, self)
 
+        # Last known good angles — held when a marker is temporarily not visible
+        self._last_angles = [0.0, 0.0, 0.0]
+
         self._pub = self.create_publisher(JointState, '/joint_states', 10)
         self.create_service(Trigger, '/arm/calibrate_zero', self._calibrate_cb)
         self.create_timer(1.0 / rate, self._update)
@@ -98,22 +101,20 @@ class JointStateEstimatorNode(Node):
             return None
 
     def _update(self):
-        angles = []
-        for joint in self._JOINTS:
+        any_updated = False
+        for i, joint in enumerate(self._JOINTS):
             R = self._lookup_rotation(f'aruco_{joint}')
-            if R is None:
-                return  # don't publish partial state — wait until all are visible
-            angles.append(_extract_y_rotation(R))
+            if R is not None:
+                self._last_angles[i] = _extract_y_rotation(R) - self._zero_offsets[i]
+                any_updated = True
+
+        if not any_updated:
+            return  # nothing seen at all yet, don't publish
 
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.name = self._URDF_JOINTS
-        msg.position = [
-            angles[0] - self._zero_offsets[0],  # shoulder
-            angles[1] - self._zero_offsets[1],  # elbow
-            angles[2] - self._zero_offsets[2],  # wrist
-            0.0,                                 # gripper (no marker yet)
-        ]
+        msg.position = self._last_angles + [0.0]  # gripper at zero for now
         msg.velocity = [0.0] * 4
         msg.effort = [0.0] * 4
         self._pub.publish(msg)
