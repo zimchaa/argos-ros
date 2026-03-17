@@ -34,6 +34,8 @@ src/
       sonar_node.py              # HC-SR04 → /sonar/range (sensor_msgs/Range, 10 Hz)
       ir_node.py                 # IR pair → /ir/proximity (IrProximity, 20 Hz)
       camera_node.py             # Webcam → /camera/image_raw (sensor_msgs/Image, 30 Hz)
+      aruco_node.py              # /camera/image_raw → /aruco/poses + /aruco/image + TF aruco_<joint>
+      joint_state_estimator_node.py  # ArUco TF → /joint_states (shoulder/elbow/wrist angles)
       core/                      # Vendored from argos-robot (import paths updated)
         config.py                # Motor configs, sensor constants, axis remaps
         drivers/pca9685.py       # PCA9685 I2C driver + I2CMotor (tracks)
@@ -157,6 +159,10 @@ Rebuild required for: new executables in setup.py, package.xml changes, new/modi
 /sonar/range            sensor_msgs/Range         ← sonar_node
 /ir/proximity           argos_msgs/IrProximity    ← ir_node
 /camera/image_raw       sensor_msgs/Image         ← camera_node
+/camera/camera_info     sensor_msgs/CameraInfo    ← camera_node
+/aruco/poses            geometry_msgs/PoseArray   ← aruco_node
+/aruco/image            sensor_msgs/Image         ← aruco_node (annotated)
+/joint_states           sensor_msgs/JointState    ← joint_state_estimator
 ```
 
 ---
@@ -186,23 +192,41 @@ See the [argos-robot CLAUDE.md](https://github.com/zimchaa/argos-robot) for:
 
 ## Status
 
-Session 3 (2026-03-13): atlas-controller confirmed as native Humble dev machine.
+Session 4 (2026-03-17): ArUco marker detection working, URDF corrected, joint state estimator added.
 
 **Working:**
 - All 4 packages build cleanly on robot and atlas-controller (`colcon build --symlink-install`)
-- All 7 executables registered and launchable
+- All 9 executables registered and launchable (added aruco_node, joint_state_estimator)
 - IR node tested end-to-end: `/ir/proximity` publishing correctly
 - GitHub sync workflow confirmed (push → pull → immediate effect)
 - URDF model with chassis, 4-joint arm, and all sensor frames
 - rviz2 + joint_state_publisher_gui visualization confirmed on atlas-controller
+- ArUco marker detection confirmed working: all 4 arm markers detected, annotated image on `/aruco/image`, TF broadcasting on `/tf`
+- DDS multicast confirmed working cross-machine (atlas-controller ↔ argos-ros.local)
+- display.launch.py ParameterValue fix applied (Humble xacro parse bug)
+
+**URDF corrected (2026-03-17) against physical measurements + Ljubljana IK paper:**
+- `upper_arm_length`: 135 mm → 90 mm
+- `forearm_length`: 135 mm → 113 mm
+- `arm_base_height`: 50 mm → 30 mm (chassis top 70 mm + 30 mm column = 100 mm shoulder pivot)
+- `wrist_length`: 40 mm → 60 mm (wrist pivot to scissor hinge)
+- `gripper_length`: 70 mm → 45 mm (scissor hinge to tip, closed)
+- `chassis_height`: 60 mm → 45 mm (track_radius 25 mm + chassis 45 mm = 70 mm base top)
+- `track_radius`: 32 mm → 25 mm (50 mm diameter wheels)
+- `track_width`: 30 mm → 40 mm (measured)
+- `chassis_width`: 180 mm → 120 mm (200 mm total − 2×40 mm tracks)
+- `chassis_length`: 250 mm → 165 mm (body); added `track_length` = 275 mm
+- Gripper joint axis: Y → X (scissoring perpendicular to arm reach plane)
+- Arm base `arm_base_z`: chassis_height/2 → 0 (arm sits directly on chassis top)
 
 **Not yet tested:**
-- IMU, flotilla, AHRS, sonar, camera nodes (sensors may not be connected yet)
+- IMU, flotilla, AHRS, sonar nodes
 - Motor control via hardware_bridge (tracks + arm)
 - Full bringup launch
-- Multi-node operation
+- joint_state_estimator → calibrate_zero → URDF tracks real arm (next step)
 
 **Planned:**
-- Tune URDF dimensions against physical robot measurements
-- Joint state publishing from actual arm motor feedback
+- Calibrate ArUco zero reference with arm vertical, verify URDF tracks real arm in rviz
+- Closed-loop arm controller node (target position → joint speeds)
+- IK solver based on Ljubljana paper (2D planar, joints 2–4)
 - Navigation integration

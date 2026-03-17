@@ -1,0 +1,100 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Value: true
+      Cell Size: 0.1
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
+      Plane: XY
+      Plane Cell Count: 20
+
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Value: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+      Alpha: 0.5
+
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Value: true
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        aruco_shoulder:
+          Value: true
+        aruco_elbow:
+          Value: true
+        aruco_wrist:
+          Value: true
+        aruco_gripper:
+          Value: true
+        camera_link:
+          Value: true
+        camera_optical_link:
+          Value: true
+        base_link:
+          Value: true
+        shoulder_link:
+          Value: true
+        elbow_link:
+          Value: true
+        wrist_link:
+          Value: true
+        gripper_link:
+          Value: true
+      Marker Scale: 0.15
+
+    - Class: rviz_default_plugins/Image
+      Name: ArUco Debug Image
+      Value: true
+      Topic:
+        Value: /aruco/image
+        Reliability Policy: Reliable
+      Max Rate: 15
+
+    - Class: rviz_default_plugins/PoseArray
+      Name: Marker Poses
+      Value: true
+      Topic:
+        Value: /aruco/poses
+      Shape:
+        Value: Axes
+      Axes Length: 0.03
+      Axes Radius: 0.003
+
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: base_link
+    Frame Rate: 30
+
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/FocusCamera
+
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 0.6
+      Focal Point:
+        X: 0.06
+        Y: 0
+        Z: 0.2
+      Pitch: 0.4
+      Yaw: 0.8
+      Name: Current View
+  Window Geometry:
+    Width: 1400
+    Height: 900

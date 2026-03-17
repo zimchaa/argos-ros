@@ -31,6 +31,8 @@ setup(
             'ir_node = argos_hardware.ir_node:main',
             'camera_node = argos_hardware.camera_node:main',
             'control_panel = argos_hardware.control_panel_node:main',
+            'aruco_node = argos_hardware.aruco_node:main',
+            'joint_state_estimator = argos_hardware.joint_state_estimator_node:main',
         ],
     },
 )

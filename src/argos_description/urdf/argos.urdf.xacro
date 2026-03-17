@@ -4,21 +4,22 @@
   <!-- ================================================================== -->
   <!-- Chassis dimensions (approximate — tracked Pi robot)                -->
   <!-- ================================================================== -->
-  <xacro:property name="chassis_length"  value="0.250" />
-  <xacro:property name="chassis_width"   value="0.180" />
-  <xacro:property name="chassis_height"  value="0.060" />
-  <xacro:property name="track_radius"    value="0.032" />
-  <xacro:property name="track_width"     value="0.030" />
+  <xacro:property name="chassis_length"  value="0.165" /><!-- body/platform length (measured) -->
+  <xacro:property name="track_length"   value="0.275" /><!-- track length end-to-end (measured) -->
+  <xacro:property name="chassis_width"  value="0.120" /><!-- body width: total 200mm - 2x40mm tracks (measured) -->
+  <xacro:property name="chassis_height" value="0.045" /><!-- body height: top at 70mm, track_radius=25mm -->
+  <xacro:property name="track_radius"   value="0.025" /><!-- 50mm diameter drive wheels (measured) -->
+  <xacro:property name="track_width"    value="0.040" /><!-- each track width (measured); connects at rear axle, ~90mm mid, front of body -->
   <xacro:property name="track_separation" value="${chassis_width + track_width}" />
 
   <!-- ================================================================== -->
   <!-- OWI-535 arm dimensions (approximate, metres)                       -->
   <!-- ================================================================== -->
-  <xacro:property name="arm_base_height"    value="0.050" />
-  <xacro:property name="upper_arm_length"   value="0.135" />
-  <xacro:property name="forearm_length"     value="0.135" />
-  <xacro:property name="wrist_length"       value="0.040" />
-  <xacro:property name="gripper_length"     value="0.070" />
+  <xacro:property name="arm_base_height"    value="0.030" /><!-- chassis top (70mm) to shoulder pivot (100mm) = 30mm (measured) -->
+  <xacro:property name="upper_arm_length"   value="0.090" /><!-- shoulder pivot to elbow pivot (Ljubljana paper + ARGOS measured) -->
+  <xacro:property name="forearm_length"     value="0.113" /><!-- elbow pivot to wrist pivot (Ljubljana paper + ARGOS measured) -->
+  <xacro:property name="wrist_length"       value="0.060" /><!-- wrist pivot to gripper scissor hinge (ARGOS measured) -->
+  <xacro:property name="gripper_length"     value="0.045" /><!-- scissor hinge to finger tip, closed (ARGOS measured) -->
   <xacro:property name="arm_link_radius"    value="0.020" />
 
   <!-- ================================================================== -->
@@ -44,10 +45,10 @@
   <xacro:property name="ir2_y"     value="0.060" />
   <xacro:property name="ir2_z"     value="0.008" />
 
-  <!-- arm base is at front-centre of chassis top -->
+  <!-- arm base is at front-centre of chassis top, sitting directly on the surface -->
   <xacro:property name="arm_base_x" value="0.060" />
   <xacro:property name="arm_base_y" value="0.0"   />
-  <xacro:property name="arm_base_z" value="${chassis_height / 2}" />
+  <xacro:property name="arm_base_z" value="0.0"   />
 
   <!-- ================================================================== -->
   <!-- Materials                                                          -->
@@ -102,13 +103,13 @@
     <link name="${side}_track_link">
       <visual>
         <geometry>
-          <box size="${chassis_length} ${track_width} ${track_radius * 2}" />
+          <box size="${track_length} ${track_width} ${track_radius * 2}" />
         </geometry>
         <material name="black" />
       </visual>
       <collision>
         <geometry>
-          <box size="${chassis_length} ${track_width} ${track_radius * 2}" />
+          <box size="${track_length} ${track_width} ${track_radius * 2}" />
         </geometry>
       </collision>
       <inertial>
@@ -359,8 +360,8 @@
     <parent link="wrist_link" />
     <child link="gripper_link" />
     <origin xyz="0 0 ${wrist_length}" rpy="0 0 0" />
-    <axis xyz="0 1 0" />
-    <limit lower="-0.5" upper="0.5" effort="2.0" velocity="1.0" />
+    <axis xyz="1 0 0" /><!-- scissoring action: fingers spread perpendicular to arm reach plane -->
+    <limit lower="0.0" upper="0.6" effort="2.0" velocity="1.0" /><!-- 0=closed, ~0.6 rad = ~34° = fully open (5 cm gap) -->
   </joint>
 
   <!-- Gripper tip (for end-effector reference) -->
