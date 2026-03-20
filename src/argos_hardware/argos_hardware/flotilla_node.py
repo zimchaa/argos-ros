@@ -14,10 +14,30 @@ order, so swapping ports or restarting won't mix up body and arm.
 Rate: ~50 Hz (param: publish_rate, default 50.0)
 """
 
+import logging
 import rclpy
 from rclpy.node import Node
 from argos_msgs.msg import FlotillaData
 from argos_hardware.core.config import FLOTILLA_BODY_MOTION_CH, FLOTILLA_ARM_MOTION_CH
+
+
+class _RosLogHandler(logging.Handler):
+    """Forward Python logging from FlotillaReader to ROS logger."""
+
+    def __init__(self, ros_logger):
+        super().__init__()
+        self._logger = ros_logger
+
+    def emit(self, record):
+        msg = self.format(record)
+        if record.levelno >= logging.ERROR:
+            self._logger.error(msg)
+        elif record.levelno >= logging.WARNING:
+            self._logger.warn(msg)
+        elif record.levelno >= logging.INFO:
+            self._logger.info(msg)
+        else:
+            self._logger.debug(msg)
 
 
 class FlotillaNode(Node):
@@ -33,7 +53,13 @@ class FlotillaNode(Node):
         self._arm_ch = self.get_parameter('arm_motion_channel').value
 
         self._pub = self.create_publisher(FlotillaData, '/flotilla', 10)
-        self._logged_modules = False
+        self._last_modules = {}
+
+        # Route FlotillaReader's Python logging to ROS so connect/disconnect
+        # events and serial errors are visible in the node output
+        flotilla_logger = logging.getLogger('argos_hardware.core.sensorium.flotilla')
+        flotilla_logger.setLevel(logging.DEBUG)
+        flotilla_logger.addHandler(_RosLogHandler(self.get_logger()))
 
         try:
             from argos_hardware.core.sensorium.flotilla import FlotillaReader
@@ -45,18 +71,33 @@ class FlotillaNode(Node):
             self.get_logger().error(f'Flotilla init failed: {e}')
 
         self.create_timer(1.0 / rate, self._publish)
+        # Periodic module check — detect connect/disconnect
+        self.create_timer(2.0, self._check_modules)
+
+    def _check_modules(self):
+        if self._reader is None:
+            return
+        modules = self._reader.connected_modules
+        if modules != self._last_modules:
+            if modules:
+                parts = ', '.join(f'ch{ch}={mod}' for ch, mod in sorted(modules.items()))
+                self.get_logger().info(f'Connected modules: {parts}')
+            else:
+                self.get_logger().warn('No modules connected')
+
+            # Warn if configured channels aren't present
+            if self._body_ch not in modules:
+                self.get_logger().warn(
+                    f'Body motion channel {self._body_ch} not found in connected modules')
+            if self._arm_ch not in modules:
+                self.get_logger().warn(
+                    f'Arm motion channel {self._arm_ch} not found in connected modules')
+
+            self._last_modules = dict(modules)
 
     def _publish(self):
         if self._reader is None:
             return
-
-        # Log connected modules once they're discovered
-        if not self._logged_modules:
-            modules = self._reader.connected_modules
-            if modules:
-                parts = ', '.join(f'ch{ch}={mod}' for ch, mod in sorted(modules.items()))
-                self.get_logger().info(f'Connected modules: {parts}')
-                self._logged_modules = True
 
         msg = FlotillaData()
         msg.header.stamp = self.get_clock().now().to_msg()
