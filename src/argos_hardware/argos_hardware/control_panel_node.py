@@ -230,19 +230,22 @@ class ControlPanelNode(Node):
         else:
             lines.append(' Sonar:  (no data)')
 
-        # AHRS
+        # AHRS (fused output)
         if self._ahrs is not None:
             a = self._ahrs
-            lines.append(f' AHRS:   roll={a.roll:+6.1f}  pitch={a.pitch:+6.1f}  '
-                         f'yaw={a.yaw:5.1f}')
+            lines.append(f' AHRS:   roll={a.roll:+6.1f}°  pitch={a.pitch:+6.1f}°  '
+                         f'yaw={a.yaw:+6.1f}°  hdg={a.heading:5.1f}°')
         else:
             lines.append(' AHRS:   (no data)')
 
-        # IMU raw
+        # IMU raw (accel + gyro)
         if self._imu is not None:
             acc = self._imu.linear_acceleration
-            lines.append(f' IMU:    ax={acc.x:+6.2f}  ay={acc.y:+6.2f}  '
+            gyr = self._imu.angular_velocity
+            lines.append(f' IMU ac: ax={acc.x:+6.2f}  ay={acc.y:+6.2f}  '
                          f'az={acc.z:+6.2f} m/s²')
+            lines.append(f' IMU gy: gx={gyr.x:+6.2f}  gy={gyr.y:+6.2f}  '
+                         f'gz={gyr.z:+6.2f} rad/s')
         else:
             lines.append(' IMU:    (no data)')
 
