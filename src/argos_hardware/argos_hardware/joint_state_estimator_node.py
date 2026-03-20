@@ -50,7 +50,7 @@ from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 from sensor_msgs.msg import JointState
 from std_srvs.srv import Trigger
-from argos_msgs.msg import FlotillaData
+from argos_msgs.msg import FlotillaData, AhrsData
 from argos_hardware.core.config import ARM_MOTION_AXIS_REMAP, BODY_MOTION_AXIS_REMAP
 import tf2_ros
 from tf2_ros import TransformException
@@ -112,7 +112,8 @@ class JointStateEstimatorNode(Node):
 
         # Accelerometer angles from Flotilla motion sensors
         self._accel_shoulder_raw = None  # latest raw angle from arm accel
-        self._body_pitch_raw = None      # latest raw angle from body accel
+        self._body_pitch_raw = None      # latest raw angle from body accel (flotilla fallback)
+        self._ahrs_pitch_raw = None      # latest fused pitch from AHRS (preferred)
         # Pre-compute axis remap: (sign, index) for X (forward) and Z (up)
         self._accel_remap_x = ARM_MOTION_AXIS_REMAP[0]
         self._accel_remap_z = ARM_MOTION_AXIS_REMAP[2]
@@ -120,6 +121,7 @@ class JointStateEstimatorNode(Node):
         self._body_remap_z = BODY_MOTION_AXIS_REMAP[2]
 
         self.create_subscription(FlotillaData, '/flotilla', self._flotilla_cb, 10)
+        self.create_subscription(AhrsData, '/ahrs', self._ahrs_cb, 10)
 
         # Locate config file for saving calibration
         self._config_path = os.path.join(
@@ -138,6 +140,10 @@ class JointStateEstimatorNode(Node):
             f'zero_offsets={[round(v,3) for v in self._zero_offsets]}, '
             f'accel_zero={round(self._accel_zero_offset,3)}, '
             f'body_pitch_zero={round(self._body_pitch_zero,3)})')
+
+    def _ahrs_cb(self, msg):
+        """Use fused pitch from AHRS (IMU + body motion, Madgwick filtered)."""
+        self._ahrs_pitch_raw = math.radians(msg.pitch)
 
     def _flotilla_cb(self, msg):
         """Extract body pitch and arm shoulder angle from accelerometers."""
@@ -184,8 +190,11 @@ class JointStateEstimatorNode(Node):
             if i == 0 and self._accel_shoulder_raw is not None:
                 arm_tilt = self._accel_shoulder_raw - self._accel_zero_offset
                 # Subtract body pitch so robot tilt doesn't affect shoulder reading
+                # Prefer AHRS (fused IMU+mag, filtered) over raw body accel
                 body_pitch = 0.0
-                if self._body_pitch_raw is not None:
+                if self._ahrs_pitch_raw is not None:
+                    body_pitch = self._ahrs_pitch_raw - self._body_pitch_zero
+                elif self._body_pitch_raw is not None:
                     body_pitch = self._body_pitch_raw - self._body_pitch_zero
                 accel_angle = arm_tilt - body_pitch
 
@@ -257,11 +266,14 @@ class JointStateEstimatorNode(Node):
         else:
             accel_part = ' (arm accel not available)'
 
-        if self._body_pitch_raw is not None:
+        if self._ahrs_pitch_raw is not None:
+            self._body_pitch_zero = self._ahrs_pitch_raw
+            accel_part += f', body_pitch={math.degrees(self._body_pitch_zero):.1f}° (AHRS)'
+        elif self._body_pitch_raw is not None:
             self._body_pitch_zero = self._body_pitch_raw
-            accel_part += f', body_pitch={math.degrees(self._body_pitch_zero):.1f}°'
+            accel_part += f', body_pitch={math.degrees(self._body_pitch_zero):.1f}° (accel)'
         else:
-            accel_part += ' (body accel not available)'
+            accel_part += ' (body pitch not available)'
 
         # Reset filters so smoothing starts fresh from new zero
         self._last_angles = [0.0, 0.0, 0.0]

@@ -32,4 +32,10 @@ def generate_launch_description():
             name='imu_node',
             parameters=[{'publish_rate': 100.0}],
         ),
+        Node(
+            package='argos_hardware',
+            executable='ahrs_node',
+            name='ahrs_node',
+            parameters=[{'publish_rate': 50.0, 'beta': 0.05}],
+        ),
     ])
