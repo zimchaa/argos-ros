@@ -1,4 +1,4 @@
-"""Robot-side nodes for calibration: hardware_bridge + flotilla_node.
+"""Robot-side nodes for calibration: hardware_bridge + sensors.
 
 Run this on the robot (argos-ros.local) while running aruco_viz.launch.py
 on the controller (atlas-controller).
@@ -25,5 +25,11 @@ def generate_launch_description():
             name='flotilla_node',
             parameters=[{'publish_rate': 50.0}],
             output='screen',
+        ),
+        Node(
+            package='argos_hardware',
+            executable='imu_node',
+            name='imu_node',
+            parameters=[{'publish_rate': 100.0}],
         ),
     ])
