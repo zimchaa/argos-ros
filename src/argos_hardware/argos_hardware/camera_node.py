@@ -18,6 +18,7 @@ import os
 import yaml
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import Image, CameraInfo
 from ament_index_python.packages import get_package_share_directory
 
@@ -62,7 +63,11 @@ class CameraNode(Node):
         self.declare_parameter('camera_info_url', default_yaml)
         yaml_path = self.get_parameter('camera_info_url').value
 
-        self._pub = self.create_publisher(Image, '/camera/image_raw', 5)
+        image_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1)
+        self._pub = self.create_publisher(Image, '/camera/image_raw', image_qos)
         self._info_pub = self.create_publisher(CameraInfo, '/camera/camera_info', 5)
 
         self._camera_info = None

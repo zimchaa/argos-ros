@@ -30,6 +30,7 @@ import math
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseArray, Pose, TransformStamped
 from tf2_ros import TransformBroadcaster
@@ -72,6 +73,12 @@ class ArucoNode(Node):
             dict_id = getattr(aruco, dict_name)
             self._aruco_dict = aruco.getPredefinedDictionary(dict_id)
             self._aruco_params = aruco.DetectorParameters_create()
+            # Relax thresholds for low-light / low-contrast detection
+            self._aruco_params.adaptiveThreshWinSizeMin = 3
+            self._aruco_params.adaptiveThreshWinSizeMax = 53
+            self._aruco_params.adaptiveThreshWinSizeStep = 4
+            self._aruco_params.adaptiveThreshConstant = 3
+            self._aruco_params.minMarkerPerimeterRate = 0.02
             self.get_logger().info(
                 f'ArUco: dict={dict_name}, size={self._marker_size} m, '
                 f'tracking IDs {marker_ids} → {joint_names}')
@@ -92,13 +99,22 @@ class ArucoNode(Node):
         # Publishers
         self._tf_broadcaster = TransformBroadcaster(self)
         self._poses_pub = self.create_publisher(PoseArray, '/aruco/poses', 5)
-        self._image_pub = self.create_publisher(Image, '/aruco/image', 5)
+        aruco_image_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1)
+        self._image_pub = self.create_publisher(Image, '/aruco/image', aruco_image_qos)
 
-        # Subscribers
+        # Subscribers — best-effort + depth 1 to always process the latest
+        # frame and drop stale ones rather than queuing up behind the network
+        image_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1)
         self.create_subscription(
             CameraInfo, '/camera/camera_info', self._camera_info_cb, 5)
         self.create_subscription(
-            Image, '/camera/image_raw', self._image_cb, 5)
+            Image, '/camera/image_raw', self._image_cb, image_qos)
 
     def _camera_info_cb(self, msg):
         if self._camera_matrix is None:

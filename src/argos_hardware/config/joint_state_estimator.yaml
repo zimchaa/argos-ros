@@ -1,0 +1,7 @@
+joint_state_estimator:
+  ros__parameters:
+    update_rate: 20.0
+    reference_frame: arm_base_link
+    max_velocity: 1.05
+    ema_alpha: 0.4
+    zero_offsets: [-1.232303, -1.182999, -1.235581, 0.000000]

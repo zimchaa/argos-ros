@@ -23,7 +23,7 @@ import termios
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from sensor_msgs.msg import Imu, Range
+from sensor_msgs.msg import Imu, Range, JointState
 from std_srvs.srv import Trigger
 from argos_msgs.msg import JointSpeeds, IrProximity, AhrsData, FlotillaData
 
@@ -52,12 +52,16 @@ class ControlPanelNode(Node):
         # Emergency stop client
         self._estop_client = self.create_client(Trigger, '/emergency_stop')
 
+        # Calibrate zero client
+        self._cal_client = self.create_client(Trigger, '/arm/calibrate_zero')
+
         # Sensor state
         self._ir = None
         self._sonar = None
         self._ahrs = None
         self._imu = None
         self._flotilla = None
+        self._joint_state = None
 
         # Subscriptions
         self.create_subscription(IrProximity, '/ir/proximity', self._ir_cb, 10)
@@ -65,6 +69,7 @@ class ControlPanelNode(Node):
         self.create_subscription(AhrsData, '/ahrs', self._ahrs_cb, 10)
         self.create_subscription(Imu, '/imu/raw', self._imu_cb, 10)
         self.create_subscription(FlotillaData, '/flotilla', self._flotilla_cb, 10)
+        self.create_subscription(JointState, '/joint_states', self._joint_state_cb, 10)
 
         # Display timer
         self.create_timer(0.25, self._display)
@@ -80,6 +85,7 @@ class ControlPanelNode(Node):
     def _ahrs_cb(self, msg):    self._ahrs = msg
     def _imu_cb(self, msg):     self._imu = msg
     def _flotilla_cb(self, msg): self._flotilla = msg
+    def _joint_state_cb(self, msg): self._joint_state = msg
 
     # --- motor commands ---
 
@@ -107,6 +113,22 @@ class ControlPanelNode(Node):
             req = Trigger.Request()
             self._estop_client.call_async(req)
             self.get_logger().warn('Emergency stop sent')
+
+    def _calibrate_zero(self):
+        if self._cal_client.service_is_ready():
+            req = Trigger.Request()
+            future = self._cal_client.call_async(req)
+            future.add_done_callback(self._cal_done_cb)
+            self.get_logger().info('Calibrate zero requested...')
+        else:
+            self.get_logger().warn('calibrate_zero service not available')
+
+    def _cal_done_cb(self, future):
+        try:
+            resp = future.result()
+            self.get_logger().info(f'Calibration: {resp.message}')
+        except Exception as e:
+            self.get_logger().error(f'Calibration failed: {e}')
 
     # --- keyboard input ---
 
@@ -157,6 +179,10 @@ class ControlPanelNode(Node):
         elif ch in ('-', '_'):
             self._speed = max(10, self._speed - 10)
 
+        # Calibrate zero
+        elif ch in ('c', 'C'):
+            self._calibrate_zero()
+
     # --- display ---
 
     def _display(self):
@@ -170,10 +196,22 @@ class ControlPanelNode(Node):
             f' Speed: {self._speed}%',
             ' Base:  W/S=fwd/back  A/D=left/right  X=stop',
             ' Arm:   I/K=shoulder  O/L=elbow  P/;=wrist  [/]=gripper',
-            ' SPACE=e-stop  Q=quit',
+            ' C=calibrate zero  SPACE=e-stop  Q=quit',
             '',
-            ' --- Sensors ---',
         ]
+
+        # Joint angles (from joint_state_estimator)
+        if self._joint_state is not None:
+            js = self._joint_state
+            parts = []
+            for name, pos in zip(js.name, js.position):
+                parts.append(f'{name.replace("_joint","")}={math.degrees(pos):+6.1f}°')
+            lines.append(' Joints: ' + '  '.join(parts))
+        else:
+            lines.append(' Joints: (no data)')
+
+        lines.append('')
+        lines.append(' --- Sensors ---')
 
         # IR
         if self._ir is not None:
