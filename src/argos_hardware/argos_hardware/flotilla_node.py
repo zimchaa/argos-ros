@@ -7,8 +7,9 @@ Topic: /flotilla (argos_msgs/FlotillaData)
   Arm Motion (LSM303D): arm_acc_{x,y,z}
   Validity flags: has_weather, has_body_motion, has_arm_motion
 
-Modules are detected dynamically regardless of which dock port they're
-plugged into. First motion module seen = body, second = arm.
+Motion modules are selected by dock channel number (configurable via
+body_motion_channel and arm_motion_channel parameters) rather than arrival
+order, so swapping ports or restarting won't mix up body and arm.
 
 Rate: ~50 Hz (param: publish_rate, default 50.0)
 """
@@ -16,6 +17,7 @@ Rate: ~50 Hz (param: publish_rate, default 50.0)
 import rclpy
 from rclpy.node import Node
 from argos_msgs.msg import FlotillaData
+from argos_hardware.core.config import FLOTILLA_BODY_MOTION_CH, FLOTILLA_ARM_MOTION_CH
 
 
 class FlotillaNode(Node):
@@ -23,14 +25,21 @@ class FlotillaNode(Node):
     def __init__(self):
         super().__init__('flotilla_node')
         self.declare_parameter('publish_rate', 50.0)
+        self.declare_parameter('body_motion_channel', FLOTILLA_BODY_MOTION_CH)
+        self.declare_parameter('arm_motion_channel', FLOTILLA_ARM_MOTION_CH)
+
         rate = self.get_parameter('publish_rate').value
+        self._body_ch = self.get_parameter('body_motion_channel').value
+        self._arm_ch = self.get_parameter('arm_motion_channel').value
 
         self._pub = self.create_publisher(FlotillaData, '/flotilla', 10)
+        self._logged_modules = False
 
         try:
             from argos_hardware.core.sensorium.flotilla import FlotillaReader
             self._reader = FlotillaReader().start()
-            self.get_logger().info('FlotillaReader started')
+            self.get_logger().info(
+                f'FlotillaReader started (body=ch{self._body_ch}, arm=ch{self._arm_ch})')
         except Exception as e:
             self._reader = None
             self.get_logger().error(f'Flotilla init failed: {e}')
@@ -40,6 +49,14 @@ class FlotillaNode(Node):
     def _publish(self):
         if self._reader is None:
             return
+
+        # Log connected modules once they're discovered
+        if not self._logged_modules:
+            modules = self._reader.connected_modules
+            if modules:
+                parts = ', '.join(f'ch{ch}={mod}' for ch, mod in sorted(modules.items()))
+                self.get_logger().info(f'Connected modules: {parts}')
+                self._logged_modules = True
 
         msg = FlotillaData()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -51,8 +68,9 @@ class FlotillaNode(Node):
             msg.pressure_hpa  = w.pressure_hpa
             msg.has_weather   = True
 
-        body = self._reader.motion
-        arm = self._reader.motion2
+        # Select motion modules by channel number
+        body = self._reader.motion_channel(self._body_ch)
+        arm = self._reader.motion_channel(self._arm_ch)
 
         if body is not None:
             msg.body_acc_x   = body.acc_x_g
