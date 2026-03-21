@@ -313,6 +313,11 @@ class FlotillaReader:
         # Ask the dock to re-announce all connected modules.  The dock sends
         # 'c channel/module' lines at boot, before we are listening; 'e' makes
         # it repeat them so connected_modules is populated immediately.
+        # Short delay lets the dock finish its own boot sequence first.
+        time.sleep(0.5)
+        self._serial.write(b"e\r\n")
+        # Send a second enumerate after a longer delay to catch slow modules
+        time.sleep(1.0)
         self._serial.write(b"e\r\n")
         return self
 
