@@ -73,6 +73,27 @@ class FlotillaNode(Node):
         self.create_timer(1.0 / rate, self._publish)
         # Periodic module check — detect connect/disconnect
         self.create_timer(2.0, self._check_modules)
+        # Re-enumerate periodically to catch slow modules (weather can take 60s+)
+        self._enumerate_timer = self.create_timer(5.0, self._re_enumerate)
+
+    def _re_enumerate(self):
+        """Periodically ask the dock to re-announce modules until all are found."""
+        if self._reader is None:
+            return
+        modules = self._reader.connected_modules
+        has_body = self._body_ch in modules
+        has_arm = self._arm_ch in modules
+        has_weather = any(v == 'weather' for v in modules.values())
+        if has_body and has_arm and has_weather:
+            # All found, stop re-enumerating
+            self._enumerate_timer.cancel()
+            self.get_logger().info('All modules found, stopping re-enumeration')
+            return
+        # Ask dock to re-announce
+        try:
+            self._reader._serial.write(b"e\r\n")
+        except Exception:
+            pass
 
     def _check_modules(self):
         if self._reader is None:
