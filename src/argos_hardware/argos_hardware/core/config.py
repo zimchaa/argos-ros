@@ -49,8 +49,8 @@ IMU_I2C_ADDR    = 0x68    # default MPU-6050 address (AD0 low)
 # Flotilla Motion module dock ports
 # ch 6 — body-mounted LSM303D (accel + mag); used for AHRS heading
 # ch 1 — shoulder-to-elbow arm link LSM303D; used for joint angle estimation
-FLOTILLA_BODY_MOTION_CH = 8
-FLOTILLA_ARM_MOTION_CH  = 1
+FLOTILLA_BODY_MOTION_CH = 1
+FLOTILLA_ARM_MOTION_CH  = 8
 
 # HC-SR04 ultrasonic (BOARD pin numbers; voltage divider fitted on CN10)
 SONAR_TRIG_PIN  = 29
