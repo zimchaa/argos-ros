@@ -140,3 +140,11 @@ ARM_MOTION_AXIS_REMAP = (
     (+1,  2),   # filter Y (right)   = +chip_z   ★ right-tilt test
     (+1,  0),   # filter Z (up)      = +chip_x   ★ flat test
 )
+
+# Arm magnetometer uses the same LSM303D chip axes as the arm accelerometer.
+ARM_MOTION_MAG_REMAP = ARM_MOTION_AXIS_REMAP
+
+# Hard-iron bias for arm LSM303D magnetometer.
+# Subtract from raw chip (mx, my, mz) before applying ARM_MOTION_MAG_REMAP.
+# Placeholder — run `ros2 run argos_hardware calibrate_mag` to compute real values.
+ARM_MAG_HARD_IRON_BIAS = (0, 0, 0)

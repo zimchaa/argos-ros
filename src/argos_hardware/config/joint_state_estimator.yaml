@@ -4,4 +4,7 @@ joint_state_estimator:
     reference_frame: arm_base_link
     max_velocity: 1.05
     ema_alpha: 0.4
-    zero_offsets: [-1.232303, -1.182999, -1.235581, 0.000000]
+    accel_weight: 0.3
+    zero_offsets: [-1.406606, -1.326156, -2.355947, 0.000000]
+    accel_zero_offset: 1.701922
+    body_pitch_zero: 2.009094

@@ -148,6 +148,9 @@ class FlotillaNode(Node):
             msg.arm_acc_x = arm.acc_x_g
             msg.arm_acc_y = arm.acc_y_g
             msg.arm_acc_z = arm.acc_z_g
+            msg.arm_mag_x = arm.mag_x
+            msg.arm_mag_y = arm.mag_y
+            msg.arm_mag_z = arm.mag_z
             msg.has_arm_motion = True
 
         self._pub.publish(msg)

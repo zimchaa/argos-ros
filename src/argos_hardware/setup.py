@@ -34,6 +34,7 @@ setup(
             'aruco_node = argos_hardware.aruco_node:main',
             'joint_state_estimator = argos_hardware.joint_state_estimator_node:main',
             'calibrate_axes = argos_hardware.calibrate_axes_node:main',
+            'calibrate_mag = argos_hardware.calibrate_mag_node:main',
         ],
     },
 )

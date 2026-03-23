@@ -19,6 +19,7 @@ Parameters:
 """
 
 import math
+import time
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
@@ -47,11 +48,12 @@ class AhrsNode(Node):
         beta = self.get_parameter('beta').value
 
         self._filter = MadgwickAHRS(beta=beta)
-        self._dt     = 1.0 / rate
+        self._dt     = 1.0 / rate   # fallback for first iteration
 
         self._latest_imu      = None
         self._latest_flotilla = None
-        self._last_t          = None
+        self._last_update_time = None   # monotonic clock for real dt
+        self._orientation_initialized = False
 
         self.create_subscription(Imu, '/imu/raw', self._imu_cb, 10)
         self.create_subscription(FlotillaData, '/flotilla', self._flotilla_cb, 10)
@@ -92,6 +94,20 @@ class AhrsNode(Node):
         gyro_f  = _apply_remap(raw_gyro,  IMU_AXIS_REMAP)
         gyro_rad = tuple(math.radians(g) for g in gyro_f)
 
+        # Bootstrap orientation from first gravity reading
+        if not self._orientation_initialized:
+            self._filter.init_from_accel(*accel_f)
+            self._orientation_initialized = True
+            self.get_logger().info('Orientation bootstrapped from gravity')
+
+        # Real elapsed time (fall back to nominal dt on first iteration)
+        now_mono = time.monotonic()
+        if self._last_update_time is not None:
+            dt = now_mono - self._last_update_time
+        else:
+            dt = self._dt
+        self._last_update_time = now_mono
+
         # Magnetometer from Flotilla body sensor (subtract hard-iron bias first)
         mag_f = None
         if flo is not None and flo.has_body_motion:
@@ -103,7 +119,7 @@ class AhrsNode(Node):
             gyro=gyro_rad,
             accel=accel_f,
             mag=mag_f,
-            dt=self._dt,
+            dt=dt,
         )
 
         now = self.get_clock().now().to_msg()
